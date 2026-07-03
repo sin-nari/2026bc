@@ -198,20 +198,12 @@
 <footer class="relative bg-navy text-slate-300">
   <div class="h-1 bg-gradient-to-r from-secondary via-accent to-gold"></div>
   <div class="mx-auto max-w-5xl px-4 py-12">
-    <div class="grid gap-8 md:grid-cols-2">
-      <div>
-        <div class="flex items-center gap-2.5 text-white font-bold text-lg">
-          <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary"><span class="material-icons-round text-[20px]">school</span></span>
-          경기도부천교육지원청
-        </div>
-        <p class="mt-3 text-sm text-slate-400 leading-relaxed">고교학점제 지원센터<br/>학생의 선택이 미래가 되는 교육을 만듭니다.</p>
+    <div>
+      <div class="flex items-center gap-2.5 text-white font-bold text-lg">
+        <span class="grid place-items-center w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary"><span class="material-icons-round text-[20px]">school</span></span>
+        경기도부천교육지원청
       </div>
-      <div class="md:text-right">
-        <p class="font-semibold text-white">문의</p>
-        <ul class="mt-3 space-y-1.5 text-sm text-slate-400">
-          <li id="f-tel"></li><li id="f-email" class="break-all"></li><li id="f-hours"></li>
-        </ul>
-      </div>
+      <p class="mt-3 text-sm text-slate-400 leading-relaxed">고교학점제 지원센터<br/>학생의 선택이 미래가 되는 교육을 만듭니다.</p>
     </div>
     <div class="mt-10 pt-6 border-t border-white/10 text-sm text-slate-400 flex flex-col sm:flex-row justify-between gap-2">
       <p>© 2026 경기도부천교육지원청 고교학점제 지원센터.</p>
@@ -266,13 +258,12 @@ const POSTER = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFB
 const CONFIG = {
   ARCHIVE_MODE: false,        // 종료 후 true → 히어로 '등록'이 '다시보기'로 전환
   REGISTER_URL: "https://docs.google.com/forms/d/e/1FAIpQLSeoMCyGca0wVi6JHGcy39zDbeHCdK7zC8MLZ850PaqZlbr47w/viewform",   // 온라인 등록 Google Form
-  SURVEY_URL:   "https://docs.google.com/forms/d/e/1FAIpQLSfB1fl8eFXOd7CzdL42qV1F-P-yYZcOSB_EgN7TpsPAFTwC6w/viewform",   // 만족도 조사 Google Form
+  SURVEY_URL:   "https://forms.gle/X5JvqpjWgP1SB9jK7",   // 만족도 조사 Google Form
   FORM_HEIGHT:  1050,         // 등록 폼 높이(px) — 폼 길이에 맞게 조절
-  SURVEY_HEIGHT: 760,         // 만족도 폼 높이(px)
+  SURVEY_HEIGHT: 1300,        // 만족도 폼 높이(px)
   REPLAY_URL:   "",           // 다시보기 YouTube (ARCHIVE_MODE)
 
   EVENT:   { date: "2026. 7. 4.(토) 14:00–16:20", place: "부천대학교 한길아트홀" },
-  CONTACT: { tel: "032-320-0000", email: "gohakjeom@goe.go.kr", hours: "평일 09:00 – 18:00" },
 
   /* 도움자료(자료실) → 경기고교학점제 지원센터로 연결 */
   RESOURCE_CENTER_URL: "https://more.goe.go.kr/hagjeomje/index.do",
@@ -289,9 +280,7 @@ const CONFIG = {
   ],
 
   /* 도움자료 — external:true 는 '바로가기'(새 창), 아니면 '다운로드' */
-  HELP: [
-    { title: "행사 포스터", icon: "image", desc: "설명회 안내 포스터", url: POSTER, external: false },
-  ],
+  HELP: [],   // 자료실 추가 카드 (없으면 '경기고교학점제 지원센터' 링크만 표시)
 };
 </script>
 
@@ -389,9 +378,6 @@ const CONFIG = {
   function renderInfo(){
     $("#hero-badge").lastElementChild.textContent = `${CONFIG.EVENT.date} · ${CONFIG.EVENT.place}`;
     $("#center-link").href = CONFIG.RESOURCE_CENTER_URL || "#";
-    $("#f-tel").textContent   = "전화 " + CONFIG.CONTACT.tel;
-    $("#f-email").textContent = "이메일 " + CONFIG.CONTACT.email;
-    $("#f-hours").textContent = CONFIG.CONTACT.hours;
   }
 
   /* 구글드라이브 링크 → 미리보기/다운로드 URL 추출 */
@@ -400,32 +386,33 @@ const CONFIG = {
     if(!m) return null;
     const id = m[1];
     return { preview:`https://drive.google.com/file/d/${id}/preview`,
+             view:`https://drive.google.com/file/d/${id}/view`,
              download:`https://drive.usercontent.google.com/download?id=${id}&export=download&confirm=t` };
   }
   const hasViewer = (f)=> !!((f.drive && f.drive.trim()) || (f.pdf && f.pdf.trim()));
 
   function lectureCard(f, idx){
     const m=catMeta(f.category);
-    // 다운로드 버튼
+    // 보기 버튼 (뷰어) — 주 버튼
+    let pv;
+    if(hasViewer(f)){
+      pv = `<button data-view="${idx}" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
+    } else if(f.preview){
+      pv = `<a href="${f.preview}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">visibility</span>보기</a>`;
+    } else {
+      pv = `<button data-soon="보기" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-sub text-sm font-semibold py-2.5 hover:bg-slate-200 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
+    }
+    // 다운로드 버튼 — 보조 버튼
     let dl;
     if(f.drive && f.drive.trim()){
       const d=driveIds(f.drive);
-      dl = `<a href="${d?d.download:f.drive}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+      dl = `<a href="${d?d.download:f.drive}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
     } else if(f.pdf && f.pdf.trim()){
-      dl = `<a href="${f.pdf}" download="${f.downloadName||''}" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+      dl = `<a href="${f.pdf}" download="${f.downloadName||''}" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
     } else if(f.url){
-      dl = `<a href="${f.url}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+      dl = `<a href="${f.url}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
     } else {
-      dl = `<button data-soon="다운로드" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-sub text-sm font-semibold py-2.5 hover:bg-slate-200 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</button>`;
-    }
-    // 보기 버튼 (뷰어)
-    let pv;
-    if(hasViewer(f)){
-      pv = `<button data-view="${idx}" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-primary/20 text-primary text-sm font-semibold px-3 py-2.5 hover:bg-primary/5 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
-    } else if(f.preview){
-      pv = `<a href="${f.preview}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</a>`;
-    } else {
-      pv = `<button data-soon="보기" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-sub text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
+      dl = `<button data-soon="다운로드" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-sub text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</button>`;
     }
     return `
       <article class="reveal lift rounded-xl2 bg-white p-6 shadow-soft ring-1 ring-black/5 hover:shadow-card hover:ring-primary/20 flex flex-col">
@@ -436,7 +423,7 @@ const CONFIG = {
         <h3 class="mt-4 font-bold text-lg leading-snug">${f.title}</h3>
         <p class="mt-1 text-sub text-sm leading-relaxed flex-1">${f.desc||""}</p>
         <p class="mt-3 text-xs text-slate-400 flex items-center gap-1"><span class="material-icons-round text-[15px]">schedule</span>${f.date||""}</p>
-        <div class="mt-4 flex gap-2">${dl}${pv}</div>
+        <div class="mt-4 flex gap-2">${pv}${dl}</div>
       </article>`;
   }
 
@@ -521,7 +508,7 @@ const CONFIG = {
       let src, openUrl, dlUrl, dlName="";
       if(item.drive && item.drive.trim()){
         const d=driveIds(item.drive);
-        src = d?d.preview:item.drive; openUrl=item.drive; dlUrl=d?d.download:item.drive;
+        src = d?d.preview:item.drive; openUrl=d?d.view:item.drive; dlUrl=d?d.view:item.drive;
       } else if(item.pdf && item.pdf.trim()){
         src=item.pdf; openUrl=item.pdf; dlUrl=item.pdf; dlName=item.downloadName||"";
       } else return;
