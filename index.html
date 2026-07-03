@@ -422,6 +422,7 @@ const CONFIG = {
       { label:"강의자료",   icon:"download",    act:()=>location.hash="#lecture", cls:glass, need:"lecture" },
       { label:"만족도 조사", icon:"rate_review", act:()=>location.hash="#survey",  cls:glass },
       { label:"자료실",     icon:"menu_book",   act:()=>location.hash="#help",    cls:glass },
+      { label:"실시간 참여", icon:"how_to_vote", act:()=>location.hash="#menti",   cls:glass },
     ];
     // 강의자료가 없으면 히어로 CTA에서도 해당 버튼 숨김
     const hasLecture = CONFIG.LECTURE.length>0;
@@ -434,8 +435,8 @@ const CONFIG = {
       el.addEventListener("click",b.act);
       cta.appendChild(el);
     });
-    // 버튼이 3개면 2열에서 마지막 버튼이 꽉 차도록
-    if(cta.children.length===3) cta.lastElementChild.classList.add("col-span-2");
+    // 버튼이 홀수면 마지막 버튼이 2열을 꽉 채우도록
+    if(cta.children.length % 2 === 1) cta.lastElementChild.classList.add("col-span-2");
   }
 
   function renderInfo(){
