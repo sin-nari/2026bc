@@ -233,6 +233,22 @@
   </div>
 </div>
 
+<!-- 원고 뷰어 (PDF 보기) -->
+<div id="pdfviewer" class="fixed inset-0 z-[85] hidden opacity-0 bg-black/90 backdrop-blur-sm flex flex-col">
+  <div class="flex items-center justify-between gap-2 p-3 text-white">
+    <p id="pdfviewer-title" class="font-semibold text-sm md:text-base truncate px-1"></p>
+    <div class="flex items-center gap-2 shrink-0">
+      <a id="pdfviewer-open" href="#" target="_blank" rel="noopener" class="hidden sm:inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white px-4 h-10 hover:bg-white/25 ring-1 ring-white/30 text-sm font-semibold"><span class="material-icons-round text-[18px]">open_in_new</span>새 창</a>
+      <a id="pdfviewer-dl" href="#" class="inline-flex items-center gap-1.5 rounded-full bg-white/15 text-white px-4 h-10 hover:bg-white/25 ring-1 ring-white/30 text-sm font-semibold"><span class="material-icons-round text-[18px]">download</span>다운로드</a>
+      <button id="pdfviewer-close" class="grid place-items-center w-10 h-10 rounded-full bg-white/15 text-white hover:bg-white/25 ring-1 ring-white/30" aria-label="닫기"><span class="material-icons-round">close</span></button>
+    </div>
+  </div>
+  <div class="flex-1 p-2 md:p-4 pt-0">
+    <iframe id="pdfviewer-frame" title="원고 보기" class="w-full h-full rounded-xl bg-white" allow="autoplay"></iframe>
+  </div>
+</div>
+
+
 <!-- 토스트 -->
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-[90] hidden"><div class="rounded-full bg-navy text-white text-sm px-5 py-3 shadow-card"></div></div>
 
@@ -261,8 +277,15 @@ const CONFIG = {
   /* 도움자료(자료실) → 경기고교학점제 지원센터로 연결 */
   RESOURCE_CENTER_URL: "https://more.goe.go.kr/hagjeomje/index.do",
 
-  /* 강의자료 — 준비되면 하나씩 추가 (없으면 [] 로 두면 섹션이 숨겨집니다) */
+  /* 강의자료 — 자료마다 '보기(뷰어)'와 '다운로드' 제공
+     · 큰 PDF는 구글드라이브에 올리고 공유링크를 drive 에 넣으세요 (권장)
+       (드라이브 공유: '링크가 있는 모든 사용자' = 뷰어)
+     · GitHub 저장소에 직접 올린 PDF는 pdf 에 파일명만 넣으면 됩니다 (예: pdf:"lecture.pdf") */
   LECTURE: [
+    { title: "고교학점제 전문가 특강 원고", category: "PDF", date: "2026-07-04",
+      desc: "한충렬 교사 · 고교학점제와 2028 대입 전형의 이해 및 준비 방안 (110쪽)",
+      drive: "https://drive.google.com/file/d/1DOfA60rM6Hc6kv4xhWc2Qp2PQ0wLDyr7/view?usp=sharing",   // 구글드라이브 공유 링크
+      downloadName: "고교학점제_전문가특강_원고.pdf" },
     { title: "설명회 발표자료", category: "PDF", date: "2026-07-04", desc: "설명회 전체 발표자료", url: "", preview: "" },
   ],
 
@@ -372,14 +395,39 @@ const CONFIG = {
     $("#f-hours").textContent = CONFIG.CONTACT.hours;
   }
 
-  function lectureCard(f){
+  /* 구글드라이브 링크 → 미리보기/다운로드 URL 추출 */
+  function driveIds(url){
+    const m = String(url).match(/\/d\/([-\w]{20,})/) || String(url).match(/[?&]id=([-\w]{20,})/);
+    if(!m) return null;
+    const id = m[1];
+    return { preview:`https://drive.google.com/file/d/${id}/preview`,
+             download:`https://drive.google.com/uc?export=download&id=${id}` };
+  }
+  const hasViewer = (f)=> !!((f.drive && f.drive.trim()) || (f.pdf && f.pdf.trim()));
+
+  function lectureCard(f, idx){
     const m=catMeta(f.category);
-    const dl = f.url
-      ? `<a href="${f.url}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`
-      : `<button data-soon="다운로드" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-sub text-sm font-semibold py-2.5 hover:bg-slate-200 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</button>`;
-    const pv = f.preview
-      ? `<a href="${f.preview}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>미리보기</a>`
-      : `<button data-soon="미리보기" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-sub text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>미리보기</button>`;
+    // 다운로드 버튼
+    let dl;
+    if(f.drive && f.drive.trim()){
+      const d=driveIds(f.drive);
+      dl = `<a href="${d?d.download:f.drive}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+    } else if(f.pdf && f.pdf.trim()){
+      dl = `<a href="${f.pdf}" download="${f.downloadName||''}" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+    } else if(f.url){
+      dl = `<a href="${f.url}" target="_blank" rel="noopener" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-gradient-to-r from-primary to-blue-600 text-white text-sm font-semibold py-2.5 hover:shadow-glow transition"><span class="material-icons-round text-[18px]">download</span>다운로드</a>`;
+    } else {
+      dl = `<button data-soon="다운로드" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg bg-slate-100 text-sub text-sm font-semibold py-2.5 hover:bg-slate-200 transition"><span class="material-icons-round text-[18px]">download</span>다운로드</button>`;
+    }
+    // 보기 버튼 (뷰어)
+    let pv;
+    if(hasViewer(f)){
+      pv = `<button data-view="${idx}" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-primary/20 text-primary text-sm font-semibold px-3 py-2.5 hover:bg-primary/5 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
+    } else if(f.preview){
+      pv = `<a href="${f.preview}" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-ink text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</a>`;
+    } else {
+      pv = `<button data-soon="보기" class="inline-flex items-center justify-center gap-1.5 rounded-lg ring-1 ring-slate-200 text-sub text-sm font-semibold px-3 py-2.5 hover:bg-slate-50 transition"><span class="material-icons-round text-[18px]">visibility</span>보기</button>`;
+    }
     return `
       <article class="reveal lift rounded-xl2 bg-white p-6 shadow-soft ring-1 ring-black/5 hover:shadow-card hover:ring-primary/20 flex flex-col">
         <div class="flex items-center justify-between">
@@ -392,6 +440,7 @@ const CONFIG = {
         <div class="mt-4 flex gap-2">${dl}${pv}</div>
       </article>`;
   }
+
 
   function helpCard(f){
     const isPoster = (f.url===POSTER);
@@ -465,10 +514,34 @@ const CONFIG = {
     toTop.addEventListener("click",()=>window.scrollTo({top:0,behavior:"smooth"}));
   }
 
+  /* 원고 PDF 뷰어 */
+  function initPdfViewer(){
+    const v=$("#pdfviewer"), frame=$("#pdfviewer-frame");
+    const close=()=>{ v.classList.add("opacity-0"); document.body.style.overflow=""; setTimeout(()=>{ v.classList.add("hidden"); frame.src="about:blank"; },250); };
+    window.__openPdf=(item)=>{
+      let src, openUrl, dlUrl, dlName="";
+      if(item.drive && item.drive.trim()){
+        const d=driveIds(item.drive);
+        src = d?d.preview:item.drive; openUrl=item.drive; dlUrl=d?d.download:item.drive;
+      } else if(item.pdf && item.pdf.trim()){
+        src=item.pdf; openUrl=item.pdf; dlUrl=item.pdf; dlName=item.downloadName||"";
+      } else return;
+      frame.src=src;
+      $("#pdfviewer-title").textContent=item.title||"원고 보기";
+      $("#pdfviewer-open").href=openUrl;
+      const dl=$("#pdfviewer-dl"); dl.href=dlUrl; dlName?dl.setAttribute("download",dlName):dl.removeAttribute("download");
+      v.classList.remove("hidden"); requestAnimationFrame(()=>v.classList.remove("opacity-0")); document.body.style.overflow="hidden";
+    };
+    $("#pdfviewer-close").addEventListener("click",close);
+    document.addEventListener("keydown",(e)=>{ if(e.key==="Escape" && !v.classList.contains("hidden")) close(); });
+  }
+
   function initActions(){
     document.addEventListener("click",(e)=>{
       const soon=e.target.closest("[data-soon]");
       if(soon){ toast(soon.dataset.soon+" 링크는 준비 중입니다. (CONFIG에서 URL을 등록해 주세요)"); return; }
+      const view=e.target.closest("[data-view]");
+      if(view){ const it=CONFIG.LECTURE[+view.dataset.view]; if(it) window.__openPdf(it); return; }
       const act=e.target.closest("[data-action]");
       if(act){
         if(act.dataset.action==="register") openURL(CONFIG.REGISTER_URL,"온라인 등록");
@@ -479,7 +552,7 @@ const CONFIG = {
 
   document.addEventListener("DOMContentLoaded",()=>{
     applyPoster(); renderHero(); renderInfo(); renderLists(); renderForms();
-    initChrome(); initActions(); initScrollSpy(); initLightbox(); observeReveals();
+    initChrome(); initActions(); initScrollSpy(); initLightbox(); initPdfViewer(); observeReveals();
   });
 })();
 </script>
